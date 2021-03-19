@@ -11,7 +11,7 @@ r_id := StringToInteger(rid);
 
 // Read a pre-computed map from <#vertices, #edges, #facets, #points>
 // to a reflexive id (useful for fast reverse searches).
-comb_db := read_combinatorial_ids("r3_cdata.txt");
+comb_db := read_combinatorial_ids("../data/r3_cdata.txt");
 
 
 
@@ -53,7 +53,7 @@ while #queue gt 0 do
 end while;
 
 for id -> e in Es do
-    print id, e;
+    printf "%o: %o\n", id, ToString(e);
 end for;
 
 quit;
