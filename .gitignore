@@ -1,0 +1,3 @@
+*.sig
+__pydata__
+*.pyc
