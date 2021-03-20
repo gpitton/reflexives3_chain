@@ -4,6 +4,7 @@
     After collecting all the results, the complete graphs
     are saved in the file data/r3_graphs.txt
 """
+import queue
 from queue import Queue
 import subprocess
 from threading import Thread
@@ -15,13 +16,14 @@ from utils import hashdict, process_magma_output, \
 n_workers = 4
 
 
-def magma_worker(queue, seen, Gs):
+def magma_worker(q, seen, Gs):
     """ Launches a magma process and parses its results. """
     while True:
         try:
-            n = queue.get()
+            print("here!")
+            n = q.get()
+            print("got",n)
         except queue.Empty:
-            print("All done.")
             return
         else:
             cmd = ["magma", "-b", f"rid:={n}", "generate_graph.m"]
@@ -36,6 +38,7 @@ def magma_worker(queue, seen, Gs):
 # We need to make the dictionary hashable to store it in a set.
             imm_graph = hashdict(graph)
             Gs.add(imm_graph)
+            q.task_done()
 
 
 if __name__ == "__main__":
@@ -45,7 +48,7 @@ if __name__ == "__main__":
 # Set with the graphs for all the reflexive 3-topes.
     Gs = set()
     q = Queue(maxsize=n_workers)
-    threads = [Thread(target=magma_worker, args=(q, seen, Gs)) for _ in range(n_workers)]
+    threads = [Thread(target=magma_worker, args=(q, seen, Gs), daemon=True) for _ in range(n_workers)]
     [t.start() for t in threads]
 # We parse the database from the polytopes with more
 # points to the polytopes with fewer points.
@@ -53,6 +56,8 @@ if __name__ == "__main__":
         for n in pids[k]:
             if n not in seen:
                 q.put(n)
+
+    q.join()
 
     with open("../data/r3_graphs.txt", "w") as fw:
         for G in Gs:
