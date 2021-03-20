@@ -35,12 +35,15 @@ while #queue gt 0 do
         Q := Polytope(vsnew);
         if IsFano(Q) and IsReflexive(Q) then
             // We do not need to check the dimension.
-            if not is_equivalent_to_any(Q, Vs) then
-                ok, n := reflexive_id_for_polytope(Q, comb_db);
-                assert ok;
+            ok, n := reflexive_id_for_polytope(Q, comb_db);
+            assert ok;
+            if is_equivalent_to_any(Q, Vs) then
+                Include(~Es[m], n);
+            else
                 if n in Vs then
-                    Include(~Es[n], m);
+                    Include(~Es[m], n);
                 else
+                    // Invariant: if n is in Vs, then n is also in Es.
                     Append(~queue, n);
                     Append(~Vs, n);
                     Include(~Es[m], n);
