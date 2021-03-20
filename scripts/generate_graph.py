@@ -7,7 +7,8 @@
 from queue import Queue
 import subprocess
 from threading import Thread
-from utils import process_magma_output, read_polytope_ids
+from utils import hashdict, process_magma_output, \
+    read_polytope_ids
 
 
 # How many tasks to run concurrently.
@@ -27,16 +28,22 @@ def magma_worker(queue, seen, Gs):
             res = subprocess.run(cmd, capture_output=True)
             graph = process_magma_output(res.stdout)
 # Update the ids seen so far.
-            seen |= graph.keys()
-            Gs.append(graph)
+# Important: the next three lines should not be replaced by:
+#    seen |= graph.keys(), as this would not be atomic.
+            newkeys = graph.keys() - seen
+            for k in newkeys:
+                seen.add(k) # All is fine: add is atomic.
+# We need to make the dictionary hashable to store it in a set.
+            imm_graph = hashdict(graph)
+            Gs.add(imm_graph)
 
 
 if __name__ == "__main__":
     pids = read_polytope_ids()
 # Keep track of the polytopes already seen in some graph.
     seen = set()
-# List with the graphs for all the reflexive 3-topes.
-    Gs = []
+# Set with the graphs for all the reflexive 3-topes.
+    Gs = set()
     q = Queue(maxsize=n_workers)
     threads = [Thread(target=magma_worker, args=(q, seen, Gs)) for _ in range(n_workers)]
     [t.start() for t in threads]

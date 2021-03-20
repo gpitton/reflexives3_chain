@@ -26,3 +26,21 @@ def read_polytope_ids(fname="../data/r3_cdata.txt"):
             fano_ids[n] |= ids
     return fano_ids
 
+
+class hashdict(dict):
+    """ A class useful to realise an immutable, hashable dictionary.
+        Note that immutability is not enforced.
+    """
+    def __init__(self, dictionary):
+        super().__init__(dictionary)
+        self._data = ((k, v) for k, v in self.items())
+
+    def __hash__(self):
+        return hash(self._data)
+
+    def __eq__(self, other):
+        if isinstance(other, hashdict):
+            return self._data == other._data
+        else:
+            raise NotImplemented
+
