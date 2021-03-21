@@ -14,19 +14,23 @@ from utils import hashdict, process_magma_output, \
 
 # How many tasks to run concurrently.
 n_workers = 4
+# If allow_many_steps is False, the graph will connect only
+# polytopes which are separated by just one vertex removal.
+# Otherwise, it will connect polytopes which can be obtained
+# from each other by adding/removing more than one vertex.
+allow_many_steps = False
 
 
-def magma_worker(q, seen, Gs):
+def magma_worker(q, seen, Gs, allow_many_steps=False):
     """ Launches a magma process and parses its results. """
+    connectivity = "ss:=true" if allow_many_steps else "ss:=false"
     while True:
         try:
-            print("here!")
             n = q.get()
-            print("got",n)
         except queue.Empty:
             return
         else:
-            cmd = ["magma", "-b", f"rid:={n}", "generate_graph.m"]
+            cmd = ["magma", "-b", f"rid:={n}", connectivity, "generate_graph.m"]
             res = subprocess.run(cmd, capture_output=True)
             graph = process_magma_output(res.stdout)
 # Update the ids seen so far.
@@ -48,7 +52,8 @@ if __name__ == "__main__":
 # Set with the graphs for all the reflexive 3-topes.
     Gs = set()
     q = Queue(maxsize=n_workers)
-    threads = [Thread(target=magma_worker, args=(q, seen, Gs), daemon=True) for _ in range(n_workers)]
+    args = (q, seen, Gs, allow_many_steps)
+    threads = [Thread(target=magma_worker, args=args, daemon=True) for _ in range(n_workers)]
     [t.start() for t in threads]
 # We parse the database from the polytopes with more
 # points to the polytopes with fewer points.
