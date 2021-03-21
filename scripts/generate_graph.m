@@ -6,8 +6,9 @@ import "utils.m": reflexive_id_for_polytope, is_equivalent_to_any,
 
 
 // We assume the called will execute this script with:
-// magma -b rid:=<some int> generate_graph.m
+// magma -b rid:=<some int> ss:=true generate_graph.m
 r_id := StringToInteger(rid);
+single_step := StringToBoolean(ss);
 
 // Read a pre-computed map from <#vertices, #edges, #facets, #points>
 // to a reflexive id (useful for fast reverse searches).
@@ -23,12 +24,15 @@ Vs := [Integers() | ];
 Es := AssociativeArray(Integers());
 Es[r_id] := {Integers() | };
 
+P := PolytopeReflexiveFanoDim3(r_id);
 // Queue with the polytopes yet to consider.
-queue := [Integers() | r_id];
+// This queue stores pairs in the form:
+// <polytope, id of closest reflexive ancestor>.
+queue := [<P, r_id>];
+seen := {Parent(P) | };  // Set of non-reflexive polytopes found so far.
 
 while #queue gt 0 do
-    m := queue[1];
-    P := PolytopeReflexiveFanoDim3(m);
+    P, m := Explode(queue[1]);
     vs := Vertices(P);
     for v in vs do
         vsnew := Exclude(vs, v);
@@ -44,15 +48,23 @@ while #queue gt 0 do
                     Include(~Es[m], n);
                 else
                     // Invariant: if n is in Vs, then n is also in Es.
-                    Append(~queue, n);
+                    Append(~queue, <Q, n>);
                     Append(~Vs, n);
                     Include(~Es[m], n);
                     Es[n] := {Integers() | };
                 end if;
             end if;
+        elif (not single_step)
+            and (Dimension(Q) eq 3)
+            and (not Q in seen) then
+            // Q is not Fano or maybe not reflexive, but we should
+            // keep removing vertices from Q and see if we can
+            // find new reflexives.
+            Append(~queue, <Q, m>);
+            Include(~seen, Q);
         end if;
     end for;
-    Exclude(~queue, m);
+    Remove(~queue, 1);
 end while;
 
 for id -> e in Es do
