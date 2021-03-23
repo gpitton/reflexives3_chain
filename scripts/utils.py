@@ -1,10 +1,26 @@
-from collections import defaultdict
+from collections import defaultdict, UserDict
+from functools import reduce
+from operator import xor
 
 
 def process_magma_output(bstdout):
     """ Builds the graph implied from magma's output. """
     stdout = bstdout.decode("utf-8")
-    lines = stdout.rstrip("\r\n").split("\n")
+    magout = stdout.rstrip("\r\n").split("\n")
+    lines = [magout[0]]
+# Check if we need to merge slash-separated lines.
+    append_next = False
+    for line in magout[1:]:
+        if append_next:
+            lines[-1] += line
+            append_next = False
+            continue
+        if line[-1] == "\\":
+            append_next = True
+            lines.append(line[:-1])
+        else:
+            lines.append(line)
+
     graph = dict()
     for line in lines:
         s = line.split(":")
@@ -27,20 +43,19 @@ def read_polytope_ids(fname="../data/r3_cdata.txt"):
     return fano_ids
 
 
-class hashdict(dict):
+class hashdict(UserDict):
     """ A class useful to realise an immutable, hashable dictionary.
         Note that immutability is not enforced.
     """
     def __init__(self, dictionary):
         super().__init__(dictionary)
-        self._data = ((k, v) for k, v in self.items())
 
     def __hash__(self):
-        return hash(self._data)
+        return reduce(xor, (hash(k) ^ hash(frozenset(v)) for k, v in self.data.items()))
 
     def __eq__(self, other):
         if isinstance(other, hashdict):
-            return self._data == other._data
+            return self.data == other.data
         else:
             raise NotImplemented
 
