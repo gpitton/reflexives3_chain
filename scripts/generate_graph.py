@@ -33,13 +33,13 @@ def magma_worker(q, seen, Gs, allow_many_steps=False):
             cmd = ["magma", "-b", f"rid:={n}", connectivity, "generate_graph.m"]
             res = subprocess.run(cmd, capture_output=True)
             graph = process_magma_output(res.stdout)
-# Update the ids seen so far.
-# Important: the next three lines should not be replaced by:
-#    seen |= graph.keys(), as this would not be atomic.
+            # Update the ids seen so far.
+            # Important: the next three lines should not be replaced by:
+            #    seen |= graph.keys(), as this would not be atomic.
             newkeys = graph.keys() - seen
             for k in newkeys:
                 seen.add(k) # All is fine: add is atomic.
-# We need to make the dictionary hashable to store it in a set.
+            # We need to make the dictionary hashable to store it in a set.
             imm_graph = hashdict(graph)
             Gs.add(imm_graph)
             q.task_done()
@@ -47,16 +47,16 @@ def magma_worker(q, seen, Gs, allow_many_steps=False):
 
 if __name__ == "__main__":
     pids = read_polytope_ids()
-# Keep track of the polytopes already seen in some graph.
+    # Keep track of the polytopes already seen in some graph.
     seen = set()
-# Set with the graphs for all the reflexive 3-topes.
+    # Set with the graphs for all the reflexive 3-topes.
     Gs = set()
     q = Queue(maxsize=n_workers)
     args = (q, seen, Gs, allow_many_steps)
     threads = [Thread(target=magma_worker, args=args, daemon=True) for _ in range(n_workers)]
     [t.start() for t in threads]
-# We parse the database from the polytopes with more
-# points to the polytopes with fewer points.
+    # We parse the database from the polytopes with more
+    # points to the polytopes with fewer points.
     for k in sorted(pids.keys(), reverse=True):
         for n in pids[k]:
             if n not in seen:

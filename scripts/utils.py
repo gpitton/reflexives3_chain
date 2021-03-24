@@ -8,7 +8,7 @@ def process_magma_output(bstdout):
     stdout = bstdout.decode("utf-8")
     magout = stdout.rstrip("\r\n").split("\n")
     lines = [magout[0]]
-# Check if we need to merge slash-separated lines.
+    # Check if we need to merge slash-separated lines.
     append_next = False
     for line in magout[1:]:
         if append_next:
